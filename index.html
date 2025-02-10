@@ -1,0 +1,35 @@
+<!DOCTYPE>
+<html title="Dashboard" lang="pt-br">
+    <head>
+        <title>Dashboard</title>
+    </head>
+    <script src="https://code.jscharting.com/latest/jscharting.js"></script>
+    <script>
+                function parseTradeData(text) {
+            const lines = text.split("\n").filter(line => line.trim() !== "");
+            const parsedData = lines.map(line => {
+                const parts = line.split(/\t+/);
+    
+                return {
+                    mesReferencia: parts[0],
+                    estadoOrigem: parts[1],
+                    codigoMunicipioOrigem: parts[2],
+                    estadoDestino: parts[3],
+                    codigoMunicipioDestino: parts[4],
+                    ncm: parts[5],
+                    descricaoNCM: parts[6].trim(),
+                    cnae: parts[7],
+                    cfop: parts[8],
+                    totalBruto: parseFloat(parts[9]) || 0,
+                    icms: parseFloat(parts[10]) || 0
+                };
+            });
+    
+            return parsedData;
+        }
+    
+        const textData = `201901	AC	1200401	BA	2907301	1531901	Fabricação de calçados de couro	64032000	6202	0.00	15.64`;
+    
+        console.log(parseTradeData(textData));
+    </script>
+</html>
