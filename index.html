@@ -1,54 +1,33 @@
-<!DOCTYPE>
+<!DOCTYPE html>
 <html title="Dashboard" lang="pt-br">
 
 <head>
     <title>Dashboard</title>
+    <script src="https://code.jscharting.com/latest/jscharting.js"></script>
+</head>
 
 <body>
-    <input type="file" id="fileInput" multiple />
+    <label>
+        Envie as notas fiscais
+        <input type="file" id="fileInput" multiple />
+    </label>
+    <div id="chartDivContainer" style="max-width: 1000px; height: 600px; margin: 0px auto; position: relative;">
+        <div id="loadingSpinner" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+            Loading...
+        </div>
+        <div id="chartDiv" style="width: 100%; height: 100%;"></div>
+    </div>
+
+
+    <script src="script.js"></script>
 </body>
-</head>
-<script src="https://code.jscharting.com/latest/jscharting.js"></script>
-<script>
-
-    document.getElementById("fileInput").addEventListener("change", function (event) {
-        const files = event.target.files; // Get selected files
-
-        for (const file of files) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const parsedData = parseTradeData(e.target.result);
-                console.log("Parsed JSON:", parsedData);
-            };
-            reader.readAsText(file);
-        }
-    });
-
-
-
-    function parseTradeData(text) {
-
-        const lines = text.split("\n").filter(line => line.trim() !== "");
-        const parsedData = lines.map(line => {
-            const parts = line.split(/\t+/);
-
-            return {
-                mesReferencia: parts[0],
-                estadoOrigem: parts[1],
-                codigoMunicipioOrigem: parts[2],
-                estadoDestino: parts[3],
-                codigoMunicipioDestino: parts[4],
-                ncm: parts[5],
-                descricaoNCM: parts[6].trim(),
-                cnae: parts[7],
-                cfop: parts[8],
-                totalBruto: parseFloat(parts[9]) || 0,
-                icms: parseFloat(parts[10]) || 0
-            };
-        });
-
-        return parsedData;
-    }
-</script>
 
 </html>
+<style>
+    #loadingSpinner {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+        display: block;
+    }
+</style>
