@@ -49,7 +49,7 @@ function parseTradeData(text) {
 }
 
 function updateChart(data) {
-    console.log("Data passed to updateChart:", data);  // Log data
+    console.log("Data passed to updateChart:", data); // Log data
 
     if (data.length === 0) {
         console.warn("No valid data found for chart.");
@@ -61,10 +61,12 @@ function updateChart(data) {
 
     // Group the data by estadoOrigem and descricaoNCM
     const groupedData = {};
+    const totalBrutoByState = {}; // Store total bruto per state
 
     data.forEach(item => {
         if (!groupedData[item.estadoOrigem]) {
             groupedData[item.estadoOrigem] = {};
+            totalBrutoByState[item.estadoOrigem] = 0;
         }
 
         if (!groupedData[item.estadoOrigem][item.descricaoNCM]) {
@@ -73,39 +75,34 @@ function updateChart(data) {
 
         // Sum the totalBruto for each state-activity combination
         groupedData[item.estadoOrigem][item.descricaoNCM] += item.totalBruto;
+        totalBrutoByState[item.estadoOrigem] += item.totalBruto; // Track total bruto per state
     });
 
-    console.log("Grouped Data by Estado and Atividade:", groupedData); // Debugging line
+    console.log("Grouped Data by Estado and Atividade:", groupedData);
 
-    // Prepare chart categories (states) and series data (totalBruto by activity)
-    let categories = Object.keys(groupedData).sort();  // Sort states alphabetically
-    categories = categories.slice(0, 10); // Limit to top 10 states (modify as needed)
+    // Sort states by totalBruto in descending order
+    let categories = Object.keys(groupedData)
+        .sort((a, b) => totalBrutoByState[b] - totalBrutoByState[a]) // Sort states by totalBruto descending
+        .slice(0, 10); // Limit to top 10 states
 
     const seriesData = [];
-    const allActivities = new Set();
 
-    // Collect all unique activities (descricaoNCM)
     categories.forEach(estado => {
-        Object.keys(groupedData[estado]).forEach(descricaoNCM => {
-            allActivities.add(descricaoNCM);
+        // Sort activities *within each state* based on total bruto for that state
+        const sortedActivities = Object.entries(groupedData[estado])
+            .sort((a, b) => b[1] - a[1]) // Sort by totalBruto descending
+            .slice(0, 10); // Top 10 activities per state
+
+        sortedActivities.forEach(([descricaoNCM, totalBruto], index) => {
+            if (!seriesData[index]) {
+                seriesData[index] = { name: descricaoNCM, points: new Array(categories.length).fill(0) };
+            }
+            seriesData[index].points[categories.indexOf(estado)] = totalBruto; // Set the correct state position
         });
     });
 
-    const activities = Array.from(allActivities).slice(0, 10);  // Limit to top 10 activities (modify as needed)
-    console.log("All Unique Activities:", activities); // Debugging line
-
-    // Create series data for each activity
-    activities.forEach(descricaoNCM => {
-        const points = categories.map(estado => {
-            return groupedData[estado][descricaoNCM] || 0; // If no data for the state-activity pair, use 0
-        });
-        seriesData.push({
-            name: descricaoNCM,
-            points: points
-        });
-    });
-
-    console.log("Series Data for Chart:", seriesData); // Debugging line
+    console.log("Sorted Categories (States):", categories);
+    console.log("Series Data for Chart:", seriesData);
 
     // Prepare chartConfig with the series and categories
     const chartConfig = {
@@ -116,9 +113,9 @@ function updateChart(data) {
         xAxis: { 
             label_text: 'Estado de Origem', 
             categories: categories, // States as categories
-            label_style: { rotation: 45 }  // Rotate X-axis labels for better readability
+            label_style: { rotation: 45 }  
         },
-        series: seriesData // Series for each activity
+        series: seriesData 
     };
 
     // Render the chart
