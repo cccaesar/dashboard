@@ -19,6 +19,7 @@ Promise.all(filePaths.map(filePath => loadAndProcessFile(filePath)))
         updateStateAvgEarningsChart(allData);
         statesThatEarnedTheMost(allData);
         compareICMSByStateAndRegion(allData);
+        document.getElementById("loadingScreen").style.display = "none";
     })
     .catch((error) => {
         console.error("Erro ao carregar ou processar arquivos:", error);
@@ -88,9 +89,6 @@ function updateChart(data) {
         console.warn("No valid data found for chart.");
         return;
     }
-
-    // Show loading spinner
-    document.getElementById("loadingSpinner").style.display = "block";
 
     // Group the data by estadoOrigem and descricaoNCM
     const groupedData = {}; // Store activities grouped by state
@@ -163,9 +161,6 @@ function updateChart(data) {
 
     // Render the chart
     JSC.chart('chartDiv', chartConfig);
-
-    // Hide loading spinner once the chart is rendered
-    document.getElementById("loadingSpinner").style.display = "none";
 }
 
 function updateStateAvgEarningsChart(data) {
@@ -175,9 +170,6 @@ function updateStateAvgEarningsChart(data) {
         console.warn("No valid data found for chart.");
         return;
     }
-
-    // Show loading spinner
-    document.getElementById("loadingSpinner2").style.display = "block";
 
     // Group the data by state
     const stateData = {};
@@ -236,9 +228,6 @@ function updateStateAvgEarningsChart(data) {
 
     // Render the chart in chartDiv2
     JSC.chart('chartDiv2', chartConfig);
-
-    // Hide loading spinner once the chart is rendered
-    document.getElementById("loadingSpinner2").style.display = "none";
 }
 
 function statesThatEarnedTheMost(data) {
@@ -246,8 +235,6 @@ function statesThatEarnedTheMost(data) {
         console.warn("No valid data found for states chart.");
         return;
     }
-
-    document.getElementById("loadingSpinner3").style.display = "block";
 
     // Agrupar arrecadação total por estado
     const earningsByState = data.reduce((acc, item) => {
@@ -302,7 +289,6 @@ function statesThatEarnedTheMost(data) {
         series: series
     });
 
-    document.getElementById("loadingSpinner3").style.display = "none";
 }
 
 function compareICMSByStateAndRegion(data) {
@@ -310,8 +296,6 @@ function compareICMSByStateAndRegion(data) {
         console.warn("Nenhum dado disponível para ICMS.");
         return;
     }
-
-    document.getElementById("loadingSpinner4").style.display = "block";
 
     // Definir regiões do Brasil por estado
     const regioes = {
@@ -337,7 +321,7 @@ function compareICMSByStateAndRegion(data) {
     }, {});
 
     // Calcular média de ICMS por estado
-    const icmsAverageByState = Object.entries(icmsByState).map(([estado, { totalICMS, count }]) => ({
+    let icmsAverageByState = Object.entries(icmsByState).map(([estado, { totalICMS, count }]) => ({
         estado,
         mediaICMS: totalICMS / count
     }));
@@ -362,6 +346,9 @@ function compareICMSByStateAndRegion(data) {
         acc[regiao] = totalICMS / count;
         return acc;
     }, {});
+
+    // Ordenar estados dentro de cada região por média de ICMS (do maior para o menor)
+    icmsAverageByState.sort((a, b) => b.mediaICMS - a.mediaICMS);
 
     // Criar a série de dados para o gráfico comparativo
     const series = icmsAverageByState.map(({ estado, mediaICMS }) => {
@@ -422,8 +409,6 @@ function compareICMSByStateAndRegion(data) {
         },
         series: series
     });
-
-    document.getElementById("loadingSpinner4").style.display = "none";
 }
 
 let pieChart;  // Variable to store the chart instance

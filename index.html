@@ -18,16 +18,19 @@
         }
 
         #activitySelect {
-            margin-bottom: 20px;  /* Space between the select and chart */
+            margin-bottom: 20px;
+            /* Space between the select and chart */
             padding: 8px;
             font-size: 16px;
-            width: 200px;  /* Adjust as needed */
+            width: 200px;
+            /* Adjust as needed */
         }
 
         /* Ensure the chart div takes up most of the container space */
         #chartDiv5 {
             width: 90%;
-            height: 400px;  /* Adjust height as needed */
+            height: 400px;
+            /* Adjust height as needed */
         }
 
         /* Ensure the chart takes up all available space */
@@ -37,11 +40,44 @@
         }
 
         /* Style for the loading spinner */
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
         .spinner {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-            display: none;
+            width: 50px;
+            height: 50px;
+            border: 5px solid white;
+            border-top: 5px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
@@ -49,25 +85,28 @@
 <body>
 
     <!-- First Chart Container -->
+    <div id="loadingScreen" class="loading-overlay">
+        <div class="loading-content">
+            <p>Carregando dados...</p>
+            <div class="spinner"></div>
+        </div>
+    </div>
+
     <div id="chartDivContainer" class="chartDivContainer">
-        <div id="loadingSpinner" class="spinner">Loading...</div>
         <div id="chartDiv" class="chartDiv"></div>
     </div>
 
     <!-- Second Chart Container -->
     <div id="chartDivContainer2" class="chartDivContainer">
-        <div id="loadingSpinner2" class="spinner">Loading...</div>
         <div id="chartDiv2" class="chartDiv"></div>
     </div>
 
     <!-- Third Chart Container -->
     <div id="chartDivContainer3" class="chartDivContainer">
-        <div id="loadingSpinner3" class="spinner">Loading...</div>
         <div id="chartDiv3" class="chartDiv"></div>
     </div>
 
     <div id="chartDivContainer4" class="chartDivContainer">
-        <div id="loadingSpinner4" class="spinner">Loading...</div>
         <div id="chartDiv4" class="chartDiv"></div>
     </div>
 
