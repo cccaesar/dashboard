@@ -104,12 +104,12 @@ function updateChart(data) {
             .sort((a, b) => b.percentage - a.percentage) // Sort by percentage descending
             .slice(0, 10); // Top 10 activities by importance per state
 
-        sortedActivities.forEach(({ descricaoNCM, percentage }, index) => {
+        sortedActivities.forEach(({ descricaoNCM, totalBruto, percentage }, index) => {
             if (!seriesData[index]) {
                 seriesData[index] = { name: descricaoNCM, points: new Array(categories.length).fill(0) };
             }
-            // Set the correct state position in the points array using percentage
-            seriesData[index].points[categories.indexOf(estado)] = percentage;
+            // Set the correct state position in the points array using totalBruto
+            seriesData[index].points[categories.indexOf(estado)] = totalBruto; // Use totalBruto, not percentage
         });
     });
 
@@ -120,14 +120,20 @@ function updateChart(data) {
     const chartConfig = {
         debug: true,
         defaultSeries_type: 'column',
-        title_label_text: 'Top 10 Atividades Mais Lucrativas por Estado (Proporção Percentual)',
-        yAxis: { label_text: 'Proporção (%)' },
+        title_label_text: 'Top 10 Atividades Mais Lucrativas por Estado (Valor Bruto)',
+        yAxis: { label_text: 'Valor Bruto (R$)' },
         xAxis: {
             label_text: 'Estado de Origem',
-            categories: categories, // States as categories
+            categories: categories.sort(), // States as categories
             label_style: { rotation: 45 }
         },
-        series: seriesData
+        series: seriesData.map(series => ({
+            name: series.name,
+            points: series.points,
+            defaultPoint: {
+                tooltip: '<b>%seriesName</b><br>Estado: %category<br>Valor Bruto: R$ %yValue<br>Percentual: %tooltipPercentage%' // Tooltip with totalBruto and percentage
+            }
+        }))
     };
 
     // Render the chart
@@ -178,19 +184,19 @@ function updateStateAvgEarningsChart(data) {
     const chartConfig = {
         debug: true,
         type: 'horizontalColumn',
-        title_label_text: 'Average Earnings by State',
-        yAxis: { label_text: 'Average Earnings (R$)' },
+        title_label_text: 'Ganhos Médios por Estado', // Título traduzido
+        yAxis: { label_text: 'Ganhos Médios (R$)' }, // Rótulo do eixo Y traduzido
         xAxis: {
-            label_text: 'States',
-            categories: stateLabels, // State names as categories
+            label_text: 'Estados', // Rótulo do eixo X traduzido
+            categories: stateLabels.sort(), // Estado ordenado alfabeticamente
             label_style: { rotation: 45 }, // Rotate state labels for better readability
             stacked: false
         },
         series: [{
-            name: 'Average Earnings',
+            name: 'Ganhos Médios', // Nome da série traduzido
             points: stateAvgEarnings,
             defaultPoint: {
-                tooltip: '<b>%seriesName</b><br>State: %category<br>Average Earnings: R$ %yValue' // Show total earnings without percentage
+                tooltip: '<b>%seriesName</b><br>Estado: %category<br>Ganhos Médios: R$ %yValue' // Tooltip com nome do estado correto
             }
         }]
     };
