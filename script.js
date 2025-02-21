@@ -73,7 +73,7 @@ function parseTradeData(text) {
 function populateActivitySelect(data) {
     const activities = [...new Set(data.map(item => item.descricaoNCM))];
     const select = document.getElementById('activitySelect');
-    activities.forEach(activity => {
+    activities.sort().forEach(activity => {
         const option = document.createElement('option');
         option.value = activity;
         option.textContent = activity;
