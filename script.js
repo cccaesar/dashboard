@@ -437,48 +437,46 @@ function updatePieChart(data, selectedActivity) {
     }
 
     const stateData = {};
+    let totalEarnings = 0;
+
+    // Agrupar os valores totais por estado
     filteredData.forEach(item => {
         const { estadoOrigem, totalBruto } = item;
         if (!stateData[estadoOrigem]) {
             stateData[estadoOrigem] = 0;
         }
         stateData[estadoOrigem] += totalBruto;
+        totalEarnings += totalBruto; // Acumular o total geral
     });
-
-    const threshold = 500000;
 
     let pieChartData = Object.keys(stateData).map(state => ({
         name: state,
-        y: stateData[state]
+        y: stateData[state],
+        percentage: (stateData[state] / totalEarnings) * 100
     }));
 
-    // Agrupar estados com valores abaixo do limiar em "Outros"
     let othersData = 0;
+
+    // Agrupar estados com menos de 5% na categoria "Outros"
     pieChartData = pieChartData.filter(state => {
-        if (state.y < threshold) {
-            othersData += state.y; // Soma as contribuições pequenas
-            return false; // Remove o estado da lista de dados
+        if (state.percentage < 5) {
+            othersData += state.y;
+            return false; // Remove o estado da lista principal
         }
         return true;
     });
 
-    // Adiciona o ponto "Outros" ao gráfico com a soma das contribuições pequenas
+    // Adiciona "Outros" se houver estados com menos de 5%
     if (othersData > 0) {
         pieChartData.push({
             name: 'Outros',
-            y: othersData
+            y: othersData,
+            percentage: (othersData / totalEarnings) * 100
         });
     }
 
-    // Calcular o total geral das arrecadações
-    const totalEarnings = pieChartData.reduce((sum, state) => sum + state.y, 0);
-
-    // Calcular a porcentagem e ordenar os estados por porcentagem
-    pieChartData = pieChartData.map(state => ({
-        ...state,
-        percentage: (state.y / totalEarnings) * 100
-    }))
-        .sort((a, b) => b.percentage - a.percentage); // Ordena de forma decrescente pela porcentagem
+    // Ordena de forma decrescente pela porcentagem
+    pieChartData.sort((a, b) => b.percentage - a.percentage);
 
     // Cria ou atualiza o gráfico de pizza
     if (!pieChart) {
@@ -497,8 +495,8 @@ function updatePieChart(data, selectedActivity) {
             },
             chart: {
                 renderTo: 'chartDiv5',
-                height: '600px', // Tamanho fixo para garantir gráfico grande
-                width: '100%'   // Largura 100% para ocupar toda a largura disponível
+                height: '600px',
+                width: '100%'
             },
             series: [{
                 name: 'Estados',
