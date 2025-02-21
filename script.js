@@ -1,37 +1,44 @@
 let allData = [];
-document.getElementById("fileInput").addEventListener("change", function (event) {
-    const files = event.target.files;
-    let fileIndex = 0;
 
-    function processNextFile() {
-        if (fileIndex >= files.length) {
-            console.log("All parsed data:", allData);
-            updateChart(allData);
-            populateActivitySelect(allData);
-            updateStateAvgEarningsChart(allData);
-            statesThatEarnedTheMost(allData);
-            compareICMSByStateAndRegion(allData);
-            return;
-        }
+const filePaths = [
+    'ComprasBA-2019-1/Compra_2019_01.txt',
+    'ComprasBA-2019-1/Compra_2019_02.txt',
+    'ComprasBA-2019-1/Compra_2019_03.txt',
+    'ComprasBA-2019-1/Compra_2019_04.txt',
+    'ComprasBA-2019-1/Compra_2019_05.txt',
+    'ComprasBA-2019-1/Compra_2019_06.txt'
+];
 
-        const file = files[fileIndex];
-        fileIndex++;
+Promise.all(filePaths.map(filePath => loadAndProcessFile(filePath)))
+    .then((allData) => {
+        // Após todos os arquivos serem processados, combinamos os dados
+        const combinedData = allData.flat(); // Combinamos os dados em um único array
 
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            const parsedData = parseTradeData(e.target.result);
-            if (parsedData.length > 0) {
-                allData = allData.concat(parsedData);
-            }
-            setTimeout(processNextFile, 10);  // Small delay for handling the next file
-        };
-        reader.readAsText(file);
+        updateChart(allData);
+        populateActivitySelect(allData);
+        updateStateAvgEarningsChart(allData);
+        statesThatEarnedTheMost(allData);
+        compareICMSByStateAndRegion(allData);
+    })
+    .catch((error) => {
+        console.error("Erro ao carregar ou processar arquivos:", error);
+    });
+
+async function loadAndProcessFile(filePath) {
+    try {
+        const response = await fetch(filePath);
+        if (!response.ok) throw new Error("Falha ao carregar o arquivo");
+
+        const fileContent = await response.text();
+        parseTradeData(fileContent); // Função para processar o conteúdo
+    } catch (error) {
+        console.error("Erro ao carregar o arquivo:", error);
     }
+}
 
-    processNextFile();
-});
+// Função para processar o conteúdo do arquivo
 
-document.getElementById('activitySelect').addEventListener('change', function(event) {
+document.getElementById('activitySelect').addEventListener('change', function (event) {
     const selectedActivity = event.target.value;
     updatePieChart(allData, selectedActivity);
 });
@@ -59,7 +66,7 @@ function parseTradeData(text) {
         }
     });
 
-    return parsedData;
+    allData.push(parsedData);
 }
 
 function populateActivitySelect(data) {
@@ -471,7 +478,7 @@ function updatePieChart(data, selectedActivity) {
         ...state,
         percentage: (state.y / totalEarnings) * 100
     }))
-    .sort((a, b) => b.percentage - a.percentage); // Ordena de forma decrescente pela porcentagem
+        .sort((a, b) => b.percentage - a.percentage); // Ordena de forma decrescente pela porcentagem
 
     // Cria ou atualiza o gráfico de pizza
     if (!pieChart) {
