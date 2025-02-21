@@ -45,7 +45,6 @@ document.getElementById('activitySelect').addEventListener('change', function (e
 
 function parseTradeData(text) {
     const lines = text.split("\n").filter(line => line.trim() !== "");
-    const parsedData = [];
 
     lines.forEach(line => {
         const parts = line.split(/\t+/);
@@ -53,7 +52,7 @@ function parseTradeData(text) {
         const ICMS = parseFloat(parts[10]) || 0;
         // Only keep data where totalBruto > 0
         if (totalBruto > 0 && parts.length >= 11) {
-            parsedData.push({
+            allData.push({
                 mesReferencia: parts[0] || null,
                 estadoOrigem: parts[1] || "Desconhecido",
                 estadoDestino: parts[3] || "Desconhecido",
@@ -65,8 +64,6 @@ function parseTradeData(text) {
             });
         }
     });
-
-    allData.push(parsedData);
 }
 
 function populateActivitySelect(data) {
