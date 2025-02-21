@@ -429,14 +429,46 @@ function updatePieChart(data, selectedActivity) {
         stateData[estadoOrigem] += totalBruto;
     });
 
-    const pieChartData = Object.keys(stateData).map(state => ({
+    // Defina o limiar para agrupar estados com contribuições pequenas
+    const threshold = 500000; // Exemplo de limiar, ajuste conforme necessário
+
+    // Filtra os estados com contribuições pequenas e agrupa em "Outros"
+    let pieChartData = Object.keys(stateData).map(state => ({
         name: state,
         y: stateData[state]
     }));
 
+    // Agrupar estados com valores abaixo do limiar em "Outros"
+    let othersData = 0;
+    pieChartData = pieChartData.filter(state => {
+        if (state.y < threshold) {
+            othersData += state.y; // Soma as contribuições pequenas
+            return false; // Remove o estado da lista de dados
+        }
+        return true;
+    });
+
+    // Adiciona o ponto "Outros" ao gráfico com a soma das contribuições pequenas
+    if (othersData > 0) {
+        pieChartData.push({
+            name: 'Outros',
+            y: othersData
+        });
+    }
+
+    // Calcular o total geral das arrecadações
+    const totalEarnings = pieChartData.reduce((sum, state) => sum + state.y, 0);
+
+    // Calcular a porcentagem e ordenar os estados por porcentagem
+    pieChartData = pieChartData.map(state => ({
+        ...state,
+        percentage: (state.y / totalEarnings) * 100
+    }))
+    .sort((a, b) => b.percentage - a.percentage); // Ordena de forma decrescente pela porcentagem
+
+    // Cria ou atualiza o gráfico de pizza
     if (!pieChart) {
         pieChart = new JSC.Chart('chartDiv5', {
-            debug: true,
             title_position: 'center',
             title_label_text: `Contribuição dos Estados para a Atividade: ${selectedActivity}`,
             legend_position: 'inside left bottom',
@@ -451,15 +483,15 @@ function updatePieChart(data, selectedActivity) {
             },
             chart: {
                 renderTo: 'chartDiv5',
-                height: '400px',
-                width: '90%'
+                height: '600px', // Tamanho fixo para garantir gráfico grande
+                width: '100%'   // Largura 100% para ocupar toda a largura disponível
             },
             series: [{
                 name: 'Estados',
                 points: pieChartData,
                 tooltip: {
                     enabled: true,
-                    text: '%name: <b>%yValue R$</b>'
+                    text: '%name: <b>%yValue R$</b> (%percentage%)'
                 }
             }]
         });
@@ -470,7 +502,7 @@ function updatePieChart(data, selectedActivity) {
                 points: pieChartData,
                 tooltip: {
                     enabled: true,
-                    text: '%name: <b>%yValue R$</b>'
+                    text: '%name: <b>%yValue R$</b> (%percentage%)'
                 }
             }],
             title: {
