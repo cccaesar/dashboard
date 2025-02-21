@@ -1,14 +1,15 @@
+let allData = [];
 document.getElementById("fileInput").addEventListener("change", function (event) {
     const files = event.target.files;
-    let allData = [];
     let fileIndex = 0;
 
     function processNextFile() {
         if (fileIndex >= files.length) {
             console.log("All parsed data:", allData);
             updateChart(allData);
+            populateActivitySelect(allData);
             updateStateAvgEarningsChart(allData);
-            citiesThatEarnedTheMost(allData);
+            statesThatEarnedTheMost(allData);
             compareICMSByStateAndRegion(allData);
             return;
         }
@@ -30,6 +31,11 @@ document.getElementById("fileInput").addEventListener("change", function (event)
     processNextFile();
 });
 
+document.getElementById('activitySelect').addEventListener('change', function(event) {
+    const selectedActivity = event.target.value;
+    updatePieChart(allData, selectedActivity);
+});
+
 function parseTradeData(text) {
     const lines = text.split("\n").filter(line => line.trim() !== "");
     const parsedData = [];
@@ -43,6 +49,7 @@ function parseTradeData(text) {
             parsedData.push({
                 mesReferencia: parts[0] || null,
                 estadoOrigem: parts[1] || "Desconhecido",
+                estadoDestino: parts[3] || "Desconhecido",
                 descricaoNCM: parts[6]?.trim() || "Atividade Desconhecida",
                 municipioOrigem: parts[2] || "Desconhecido",
                 municipioDestino: parts[4] || "Desconhecido",
@@ -54,6 +61,18 @@ function parseTradeData(text) {
 
     return parsedData;
 }
+
+function populateActivitySelect(data) {
+    const activities = [...new Set(data.map(item => item.descricaoNCM))];
+    const select = document.getElementById('activitySelect');
+    activities.forEach(activity => {
+        const option = document.createElement('option');
+        option.value = activity;
+        option.textContent = activity;
+        select.appendChild(option);
+    });
+}
+
 
 function updateChart(data) {
     console.log("Data passed to updateChart:", data); // Log data
@@ -118,7 +137,6 @@ function updateChart(data) {
 
     // Prepare chartConfig with the series and categories
     const chartConfig = {
-        debug: true,
         defaultSeries_type: 'column',
         title_label_text: 'Top 10 Atividades Mais Lucrativas por Estado (Valor Bruto)',
         yAxis: { label_text: 'Valor Bruto (R$)' },
@@ -182,7 +200,6 @@ function updateStateAvgEarningsChart(data) {
 
     // Prepare chartConfig with the series and categories
     const chartConfig = {
-        debug: true,
         type: 'horizontalColumn',
         title_label_text: 'Ganhos Médios por Estado', // Título traduzido
         yAxis: { label_text: 'Ganhos Médios (R$)' }, // Rótulo do eixo Y traduzido
@@ -208,56 +225,63 @@ function updateStateAvgEarningsChart(data) {
     document.getElementById("loadingSpinner2").style.display = "none";
 }
 
-function citiesThatEarnedTheMost(data) {
+function statesThatEarnedTheMost(data) {
     if (data.length === 0) {
-        console.warn("No valid data found for cities chart.");
+        console.warn("No valid data found for states chart.");
         return;
     }
 
     document.getElementById("loadingSpinner3").style.display = "block";
 
-    // Agrupar arrecadação total por município
-    const earningsByMunicipio = data.reduce((acc, item) => {
-        if (!item.municipioOrigem) return acc; // Ignora se não houver município definido
+    // Agrupar arrecadação total por estado
+    const earningsByState = data.reduce((acc, item) => {
+        if (!item.estadoOrigem) return acc; // Ignora se não houver estado definido
 
-        if (!acc[item.municipioOrigem]) {
-            acc[item.municipioOrigem] = 0;
+        if (!acc[item.estadoOrigem]) {
+            acc[item.estadoOrigem] = 0;
         }
-        acc[item.municipioOrigem] += item.totalBruto; // Soma arrecadação do município
+        acc[item.estadoOrigem] += item.totalBruto; // Soma arrecadação do estado
         return acc;
     }, {});
 
-    // Ordenar municípios por arrecadação total em ordem decrescente e pegar o top 10
-    const topMunicipios = Object.entries(earningsByMunicipio)
+    // Ordenar estados por arrecadação total em ordem decrescente e pegar o top 10
+    const topStates = Object.entries(earningsByState)
         .sort((a, b) => b[1] - a[1]) // Ordena do maior para o menor
         .slice(0, 10) // Pega apenas os 10 primeiros
-        .map(([municipioOrigem]) => municipioOrigem); // Extrai apenas os nomes dos municípios
+        .map(([estadoOrigem]) => estadoOrigem); // Extrai apenas os nomes dos estados
 
-    // Obter lista única e ordenada de meses
-    const meses = [...new Set(data.map(d => d.mesReferencia))].sort();
+    // Obter lista única e ordenada de meses e converter para formato "Mês/Ano"
+    const meses = [...new Set(data.map(d => d.mesReferencia))].sort().map(mes => {
+        const ano = mes.toString().slice(0, 4); // Extrai o ano
+        const mesNumero = mes.toString().slice(4, 6); // Extrai o mês
+        return `${mesNumero}/${ano}`; // Formata como Mês/Ano
+    });
 
-    // Criar série apenas para os top 10 municípios
-    const series = topMunicipios.map(municipio => {
+    // Criar série apenas para os top 10 estados
+    const series = topStates.map(estado => {
         return {
-            name: municipio,
+            name: estado,
             points: meses.map(mes => {
-                const item = data.find(d => d.mesReferencia === mes && d.municipioOrigem === municipio);
+                const mesNumero = mes.split('/')[0]; // Pega o mês
+                const ano = mes.split('/')[1]; // Pega o ano
+                const mesReferencia = `${ano}${mesNumero.padStart(2, '0')}`; // Converte de volta para "yyyymm"
+                const item = data.find(d => d.mesReferencia === mesReferencia && d.estadoOrigem === estado);
                 return { x: mes, y: item ? item.totalBruto : 0 };
             })
         };
     });
 
-    // Criar gráfico corrigido para mostrar apenas o top 10 municípios
+    // Criar gráfico corrigido para mostrar apenas o top 10 estados
     JSC.Chart("chartDiv3", {
         type: "line",
-        title_label_text: "Top 10 Municípios por Arrecadação",
+        title_label_text: "Top 10 Estados por Arrecadação",
         xAxis: {
             label_text: "Mês de Referência",
             scale_type: "auto", // Evita erro caso os meses sejam strings
         },
         yAxis: {
             label_text: "Arrecadação (R$)",
-            formatString: "c0"
+            defaultCultureName: 'pt-BR',
         },
         series: series
     });
@@ -339,7 +363,6 @@ function compareICMSByStateAndRegion(data) {
 
     // Criar gráfico
     JSC.chart("chartDiv4", {
-        debug: true,
         title_label: {
             style_fontSize: 16,
             text: "Média de ICMS por Estado vs. Região\n🟠 Região | 🔵 Estado",
@@ -385,4 +408,74 @@ function compareICMSByStateAndRegion(data) {
     });
 
     document.getElementById("loadingSpinner4").style.display = "none";
+}
+
+let pieChart;  // Variable to store the chart instance
+
+function updatePieChart(data, selectedActivity) {
+    const filteredData = data.filter(item => item.descricaoNCM === selectedActivity);
+
+    if (filteredData.length === 0) {
+        console.warn("No data found for the selected activity:", selectedActivity);
+        return;
+    }
+
+    const stateData = {};
+    filteredData.forEach(item => {
+        const { estadoOrigem, totalBruto } = item;
+        if (!stateData[estadoOrigem]) {
+            stateData[estadoOrigem] = 0;
+        }
+        stateData[estadoOrigem] += totalBruto;
+    });
+
+    const pieChartData = Object.keys(stateData).map(state => ({
+        name: state,
+        y: stateData[state]
+    }));
+
+    if (!pieChart) {
+        pieChart = new JSC.Chart('chartDiv5', {
+            debug: true,
+            title_position: 'center',
+            title_label_text: `Contribuição dos Estados para a Atividade: ${selectedActivity}`,
+            legend_position: 'inside left bottom',
+            defaultSeries: {
+                type: 'pie',
+                pointSelection: true
+            },
+            defaultPoint_label: {
+                text: '<b>%name</b>',
+                placement: 'auto',
+                autoHide: false
+            },
+            chart: {
+                renderTo: 'chartDiv5',
+                height: '400px',
+                width: '90%'
+            },
+            series: [{
+                name: 'Estados',
+                points: pieChartData,
+                tooltip: {
+                    enabled: true,
+                    text: '%name: <b>%yValue R$</b>'
+                }
+            }]
+        });
+    } else {
+        pieChart.options({
+            series: [{
+                name: 'Estados',
+                points: pieChartData,
+                tooltip: {
+                    enabled: true,
+                    text: '%name: <b>%yValue R$</b>'
+                }
+            }],
+            title: {
+                label_text: `Contribuição dos Estados para a Atividade: ${selectedActivity}`
+            }
+        });
+    }
 }
