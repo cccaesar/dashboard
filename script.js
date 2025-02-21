@@ -149,7 +149,7 @@ function updateChart(data) {
             name: series.name,
             points: series.points,
             defaultPoint: {
-                tooltip: '<b>%seriesName</b><br>Estado: %category<br>Valor Bruto: R$ %yValue<br>Percentual: %tooltipPercentage%' // Tooltip with totalBruto and percentage
+                tooltip: '<b>%seriesName</b><br>Valor Bruto: R$ %yValue<br>Percentual: %xPercentile' // Tooltip with totalBruto and percentage
             }
         }))
     };
@@ -196,7 +196,16 @@ function updateStateAvgEarningsChart(data) {
         stateLabels.push(state); // Add state name as a label
     });
 
-    console.log("Series Data for State Average Earnings Chart:", stateAvgEarnings);
+    // Sort the state labels and earnings by average earnings in descending order
+    const sortedData = stateAvgEarnings
+        .map((avgEarnings, index) => ({ avgEarnings, state: stateLabels[index] }))
+        .sort((a, b) => b.avgEarnings - a.avgEarnings); // Sort by average earnings, descending
+
+    // Extract sorted states and earnings after sorting
+    const sortedStateLabels = sortedData.map(item => item.state);
+    const sortedStateAvgEarnings = sortedData.map(item => item.avgEarnings);
+
+    console.log("Sorted Series Data for State Average Earnings Chart:", sortedStateAvgEarnings);
 
     // Prepare chartConfig with the series and categories
     const chartConfig = {
@@ -205,13 +214,13 @@ function updateStateAvgEarningsChart(data) {
         yAxis: { label_text: 'Ganhos Médios (R$)' }, // Rótulo do eixo Y traduzido
         xAxis: {
             label_text: 'Estados', // Rótulo do eixo X traduzido
-            categories: stateLabels.sort(), // Estado ordenado alfabeticamente
+            categories: sortedStateLabels, // Sorted states by average earnings
             label_style: { rotation: 45 }, // Rotate state labels for better readability
             stacked: false
         },
         series: [{
             name: 'Ganhos Médios', // Nome da série traduzido
-            points: stateAvgEarnings,
+            points: sortedStateAvgEarnings,
             defaultPoint: {
                 tooltip: '<b>%seriesName</b><br>Estado: %category<br>Ganhos Médios: R$ %yValue' // Tooltip com nome do estado correto
             }
@@ -429,10 +438,8 @@ function updatePieChart(data, selectedActivity) {
         stateData[estadoOrigem] += totalBruto;
     });
 
-    // Defina o limiar para agrupar estados com contribuições pequenas
-    const threshold = 500000; // Exemplo de limiar, ajuste conforme necessário
+    const threshold = 500000;
 
-    // Filtra os estados com contribuições pequenas e agrupa em "Outros"
     let pieChartData = Object.keys(stateData).map(state => ({
         name: state,
         y: stateData[state]
@@ -491,7 +498,7 @@ function updatePieChart(data, selectedActivity) {
                 points: pieChartData,
                 tooltip: {
                     enabled: true,
-                    text: '%name: <b>%yValue R$</b> (%percentage%)'
+                    text: '%name: <b>%percentage% do total arrecadado</b>'
                 }
             }]
         });
@@ -502,7 +509,7 @@ function updatePieChart(data, selectedActivity) {
                 points: pieChartData,
                 tooltip: {
                     enabled: true,
-                    text: '%name: <b>%yValue R$</b> (%percentage%)'
+                    text: '%name: <b>%percentage% do total arrecadado</b>'
                 }
             }],
             title: {
