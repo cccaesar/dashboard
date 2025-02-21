@@ -9,6 +9,7 @@ document.getElementById("fileInput").addEventListener("change", function (event)
             updateChart(allData);
             updateStateAvgEarningsChart(allData);
             citiesThatEarnedTheMost(allData);
+            compareICMSByStateAndRegion(allData);
             return;
         }
 
@@ -36,15 +37,17 @@ function parseTradeData(text) {
     lines.forEach(line => {
         const parts = line.split(/\t+/);
         const totalBruto = parseFloat(parts[9]) || 0;
-
+        const ICMS = parseFloat(parts[10]) || 0;
         // Only keep data where totalBruto > 0
         if (totalBruto > 0 && parts.length >= 11) {
             parsedData.push({
                 mesReferencia: parts[0] || null,
                 estadoOrigem: parts[1] || "Desconhecido",
                 descricaoNCM: parts[6]?.trim() || "Atividade Desconhecida",
-                municipio: parts[4] || "Desconhecido",
-                totalBruto: totalBruto
+                municipioOrigem: parts[2] || "Desconhecido",
+                municipioDestino: parts[4] || "Desconhecido",
+                totalBruto: totalBruto,
+                ICMS: ICMS
             });
         }
     });
@@ -209,12 +212,12 @@ function citiesThatEarnedTheMost(data) {
 
     // Agrupar arrecadação total por município
     const earningsByMunicipio = data.reduce((acc, item) => {
-        if (!item.municipio) return acc; // Ignora se não houver município definido
+        if (!item.municipioOrigem) return acc; // Ignora se não houver município definido
 
-        if (!acc[item.municipio]) {
-            acc[item.municipio] = 0;
+        if (!acc[item.municipioOrigem]) {
+            acc[item.municipioOrigem] = 0;
         }
-        acc[item.municipio] += item.totalBruto; // Soma arrecadação do município
+        acc[item.municipioOrigem] += item.totalBruto; // Soma arrecadação do município
         return acc;
     }, {});
 
@@ -222,7 +225,7 @@ function citiesThatEarnedTheMost(data) {
     const topMunicipios = Object.entries(earningsByMunicipio)
         .sort((a, b) => b[1] - a[1]) // Ordena do maior para o menor
         .slice(0, 10) // Pega apenas os 10 primeiros
-        .map(([municipio]) => municipio); // Extrai apenas os nomes dos municípios
+        .map(([municipioOrigem]) => municipioOrigem); // Extrai apenas os nomes dos municípios
 
     // Obter lista única e ordenada de meses
     const meses = [...new Set(data.map(d => d.mesReferencia))].sort();
@@ -232,7 +235,7 @@ function citiesThatEarnedTheMost(data) {
         return {
             name: municipio,
             points: meses.map(mes => {
-                const item = data.find(d => d.mesReferencia === mes && d.municipio === municipio);
+                const item = data.find(d => d.mesReferencia === mes && d.municipioOrigem === municipio);
                 return { x: mes, y: item ? item.totalBruto : 0 };
             })
         };
@@ -254,4 +257,139 @@ function citiesThatEarnedTheMost(data) {
     });
 
     document.getElementById("loadingSpinner3").style.display = "none";
+}
+
+function compareICMSByStateAndRegion(data) {
+    if (data.length === 0) {
+        console.warn("Nenhum dado disponível para ICMS.");
+        return;
+    }
+
+    document.getElementById("loadingSpinner4").style.display = "block";
+
+    // Definir regiões do Brasil por estado
+    const regioes = {
+        "Norte": ["AC", "AM", "AP", "PA", "RO", "RR", "TO"],
+        "Nordeste": ["AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"],
+        "Centro-Oeste": ["DF", "GO", "MT", "MS"],
+        "Sudeste": ["ES", "MG", "RJ", "SP"],
+        "Sul": ["PR", "RS", "SC"]
+    };
+
+    // Agrupar ICMS por estado (independentemente do mês)
+    const icmsByState = data.reduce((acc, item) => {
+        if (!item.estadoOrigem || !item.ICMS) return acc;
+
+        if (!acc[item.estadoOrigem]) {
+            acc[item.estadoOrigem] = { totalICMS: 0, count: 0 };
+        }
+
+        acc[item.estadoOrigem].totalICMS += item.ICMS;
+        acc[item.estadoOrigem].count += 1;
+
+        return acc;
+    }, {});
+
+    // Calcular média de ICMS por estado
+    const icmsAverageByState = Object.entries(icmsByState).map(([estado, { totalICMS, count }]) => ({
+        estado,
+        mediaICMS: totalICMS / count
+    }));
+
+    // Criar um agrupamento por região
+    const icmsByRegion = {};
+
+    icmsAverageByState.forEach(({ estado, mediaICMS }) => {
+        const regiao = Object.keys(regioes).find(reg => regioes[reg].includes(estado));
+
+        if (regiao) {
+            if (!icmsByRegion[regiao]) {
+                icmsByRegion[regiao] = { totalICMS: 0, count: 0 };
+            }
+            icmsByRegion[regiao].totalICMS += mediaICMS;
+            icmsByRegion[regiao].count += 1;
+        }
+    });
+
+    // Calcular média de ICMS por região
+    const icmsAverageByRegion = Object.entries(icmsByRegion).reduce((acc, [regiao, { totalICMS, count }]) => {
+        acc[regiao] = totalICMS / count;
+        return acc;
+    }, {});
+
+    // Criar a série de dados para o gráfico comparativo
+    const series = icmsAverageByState.map(({ estado, mediaICMS }) => {
+        const regiao = Object.keys(regioes).find(reg => regioes[reg].includes(estado));
+        const mediaRegiao = icmsAverageByRegion[regiao] || 0;
+
+        return {
+            name: estado,
+            points: [
+                { x: estado, y: mediaRegiao, label_align: "left" },
+                { x: estado, y: mediaICMS, label_align: "right" }
+            ]
+        };
+    });
+
+    // Criar gráfico
+    JSC.chart("chartDiv4", {
+        debug: true,
+        title_label: {
+            style_fontSize: 16,
+            text: "Média de ICMS por Estado vs. Região",
+            margin_bottom: 10
+        },
+        type: "horizontal line",
+        palette: ["#FF9800", "#29B6F6"],
+        legend: {
+            visible: true,
+            position: "top left",
+            customItems: [
+                {
+                    label_text: "🟠 Região | 🔵 Estado",
+                    marker: [
+                        { type: "circle", color: "#FF9800", size: 12 },
+                        { type: "circle", color: "#29B6F6", size: 12 }
+                    ]
+                }
+            ]
+        },
+        defaultTooltip_enabled: true,
+        defaultAxis_defaultTick: {
+            gridLine_color: "#E0E0E0",
+            line_visible: false
+        },
+        xAxis_defaultTick: {
+            label_maxWidth: 90,
+            gridLine_center: true
+        },
+        yAxis: [
+            {
+                defaultTick_label_text: "ICMS Médio",
+                label_text: "Valor Médio de ICMS (R$)"
+            }
+        ],
+        defaultSeries: {
+            line: { color: "#E0E0E0", width: 8 },
+            mouseTracking_enabled: false,
+            defaultPoint: {
+                label: {
+                    text: "R$ %yValue",
+                    verticalAlign: "middle"
+                },
+                tooltip: "%xValue (%seriesName): <b>R$ %yValue</b>",
+                marker: {
+                    type: "circle",
+                    outline_width: 0,
+                    size: 16
+                },
+                xAxisTick_hoverAction: "highlightSeries"
+            },
+            firstPoint: { color: "#FF9800" },
+            lastPoint: { color: "#29B6F6" }
+        },
+        series: series
+    });
+
+    document.getElementById("loadingSpinner4").style.display = "none";
 }
