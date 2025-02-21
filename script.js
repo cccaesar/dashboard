@@ -325,8 +325,8 @@ function compareICMSByStateAndRegion(data) {
         return {
             name: estado,
             points: [
-                { x: estado, y: mediaRegiao, label_align: "left" },
-                { x: estado, y: mediaICMS, label_align: "right" }
+                { x: estado, y: mediaRegiao / 1000, label_align: "left" },  // Valores em milhar
+                { x: estado, y: mediaICMS / 1000, label_align: "right" }   // Valores em milhar
             ]
         };
     });
@@ -336,24 +336,12 @@ function compareICMSByStateAndRegion(data) {
         debug: true,
         title_label: {
             style_fontSize: 16,
-            text: "Média de ICMS por Estado vs. Região",
+            text: "Média de ICMS por Estado vs. Região\n🟠 Região | 🔵 Estado",
             margin_bottom: 10
         },
         type: "horizontal line",
         palette: ["#FF9800", "#29B6F6"],
-        legend: {
-            visible: true,
-            position: "top left",
-            customItems: [
-                {
-                    label_text: "🟠 Região | 🔵 Estado",
-                    marker: [
-                        { type: "circle", color: "#FF9800", size: 12 },
-                        { type: "circle", color: "#29B6F6", size: 12 }
-                    ]
-                }
-            ]
-        },
+        legend_visible: false,
         defaultTooltip_enabled: true,
         defaultAxis_defaultTick: {
             gridLine_color: "#E0E0E0",
@@ -365,8 +353,7 @@ function compareICMSByStateAndRegion(data) {
         },
         yAxis: [
             {
-                defaultTick_label_text: "ICMS Médio",
-                label_text: "Valor Médio de ICMS (R$)"
+                label_text: "Valor Médio de ICMS (R$) em Milhares"
             }
         ],
         defaultSeries: {
