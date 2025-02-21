@@ -149,7 +149,7 @@ function updateChart(data) {
             name: series.name,
             points: series.points,
             defaultPoint: {
-                tooltip: '<b>%seriesName</b><br>Valor Bruto: R$ %yValue<br>Percentual: %xPercentile' // Tooltip with totalBruto and percentage
+                tooltip: '<b>%seriesName</b><br>Valor Bruto: R$ %yValue' // Tooltip with totalBruto and percentage
             }
         }))
     };
