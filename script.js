@@ -10,9 +10,9 @@ const filePaths = [
 ];
 
 Promise.all(filePaths.map(filePath => loadAndProcessFile(filePath)))
-    .then((allData) => {
+    .then(() => {
         // Após todos os arquivos serem processados, combinamos os dados
-        const combinedData = allData.flat(); // Combinamos os dados em um único array
+        allData = allData.flat(); // Combinamos os dados em um único array
 
         updateChart(allData);
         populateActivitySelect(allData);
@@ -45,6 +45,7 @@ document.getElementById('activitySelect').addEventListener('change', function (e
 
 function parseTradeData(text) {
     const lines = text.split("\n").filter(line => line.trim() !== "");
+    const parsedData = [];
 
     lines.forEach(line => {
         const parts = line.split(/\t+/);
@@ -64,6 +65,8 @@ function parseTradeData(text) {
             });
         }
     });
+
+    allData.push(parsedData);
 }
 
 function populateActivitySelect(data) {
